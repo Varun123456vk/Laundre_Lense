@@ -8,10 +8,13 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+from app.agents.agent_types import PipelineSummary, RegulatoryDossier
+from app.agents.agent_6_dossier import generate_regulatory_dossier
+from app.agents.orchestrator import get_cached_dossier, run_pipeline
 from app.db import (
     get_alert_detail as db_get_alert_detail,
     get_alert_graph as db_get_alert_graph,
@@ -172,3 +175,90 @@ def redteam_inject(
 def redteam_delete(db: Session = Depends(get_db)) -> dict:
     removed = remove_redteam_alert(db=db)
     return {"removed": removed}
+
+
+# ── Multi-Agent Pipeline Endpoints ─────────────
+
+@app.post("/pipeline/analyze", response_model=PipelineSummary)
+async def pipeline_analyze(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> PipelineSummary:
+    file_bytes: bytes = b""
+    fname: str = "dataset.csv"
+
+    content_type = request.headers.get("content-type", "")
+
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        uploaded_file = form.get("file")
+        raw_text = form.get("raw_content") or form.get("content")
+        fname = form.get("filename") or getattr(uploaded_file, "filename", "dataset.csv")
+
+        if uploaded_file is not None and hasattr(uploaded_file, "read"):
+            file_bytes = await uploaded_file.read()
+        elif raw_text is not None:
+            file_bytes = str(raw_text).encode("utf-8")
+    elif "application/json" in content_type:
+        body = await request.json()
+        fname = body.get("filename", "dataset.csv")
+        file_bytes = body.get("content", "").encode("utf-8")
+    else:
+        # Raw bytes stream
+        file_bytes = await request.body()
+
+    if not file_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail="No dataset provided. Please upload a CSV/Excel file or provide text content.",
+        )
+
+    try:
+        summary = await run_pipeline(file_bytes=file_bytes, filename=fname, db=db)
+        return summary
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline execution error: {str(e)}")
+
+
+@app.get("/pipeline/dossier/{alert_id}", response_model=RegulatoryDossier)
+def get_alert_dossier(alert_id: str, db: Session = Depends(get_db)) -> RegulatoryDossier:
+    # 1. Check in-memory dossier cache
+    dossier = get_cached_dossier(alert_id)
+    if dossier is not None:
+        return dossier
+
+    # 2. Re-synthesize from database if not cached
+    alert_detail = db_get_alert_detail(db, alert_id)
+    if alert_detail is None:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+
+    graph_payload = db_get_alert_graph(db, alert_id)
+    if graph_payload is None:
+        graph_payload = GraphPayload(nodes=[], edges=[])
+
+    return generate_regulatory_dossier(alert_detail, graph_payload)
+
+
+@app.get("/pipeline/sample-dataset")
+def get_sample_dataset() -> dict:
+    csv_content = (
+        "transaction_id,source_account,target_account,amount,timestamp\n"
+        # 1. Scatter-Gather Ring (Entry -> 3 Mules -> Exit)
+        "TX-1001,ACC-CORP-ORIGIN,MULE-NODE-881,48500.00,2026-11-14T10:02:15Z\n"
+        "TX-1002,ACC-CORP-ORIGIN,MULE-NODE-882,49200.00,2026-11-14T10:05:30Z\n"
+        "TX-1003,ACC-CORP-ORIGIN,MULE-NODE-883,47800.00,2026-11-14T10:09:45Z\n"
+        "TX-1004,MULE-NODE-881,ACC-OFFSHORE-EXIT,48000.00,2026-11-14T10:22:10Z\n"
+        "TX-1005,MULE-NODE-882,ACC-OFFSHORE-EXIT,48900.00,2026-11-14T10:26:40Z\n"
+        "TX-1006,MULE-NODE-883,ACC-OFFSHORE-EXIT,47500.00,2026-11-14T10:31:05Z\n"
+        # 2. Circular Cycle Ring (Looping funds to simulate commercial activity)
+        "TX-2001,ACC-SHELL-A,ACC-SHELL-B,85000.00,2026-11-14T11:00:00Z\n"
+        "TX-2002,ACC-SHELL-B,ACC-SHELL-C,84200.00,2026-11-14T11:15:20Z\n"
+        "TX-2003,ACC-SHELL-C,ACC-SHELL-A,83800.00,2026-11-14T11:32:45Z\n"
+        # 3. Fan-out Smurfing (Under PMLA threshold)
+        "TX-3001,ACC-SYNDICATE-FEEDER,ACC-RECV-01,42000.00,2026-11-14T12:05:00Z\n"
+        "TX-3002,ACC-SYNDICATE-FEEDER,ACC-RECV-02,44500.00,2026-11-14T12:08:10Z\n"
+        "TX-3003,ACC-SYNDICATE-FEEDER,ACC-RECV-03,43900.00,2026-11-14T12:12:30Z\n"
+        "TX-3004,ACC-SYNDICATE-FEEDER,ACC-RECV-04,45100.00,2026-11-14T12:15:00Z\n"
+    )
+    return {"filename": "sample_aml_syndicate_inr.csv", "csv": csv_content}
+

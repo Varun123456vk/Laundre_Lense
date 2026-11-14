@@ -150,6 +150,117 @@ export async function deleteRedTeam(): Promise<{ removed: boolean }> {
   return res.json();
 }
 
+// ---------- Multi-Agent Pipeline Schemas & API ----------
+
+export interface ApiAgentLogEntry {
+  agent_id: string;
+  agent_name: string;
+  status: "idle" | "working" | "complete" | "warning" | "error";
+  action: string;
+  details: string;
+  duration_ms: number;
+  timestamp: string;
+}
+
+export interface ApiIngestionStats {
+  filename: string;
+  file_type: string;
+  total_rows: number;
+  valid_rows: number;
+  invalid_rows: number;
+  unique_accounts: number;
+  total_volume_inr: number;
+  earliest_ts: string;
+  latest_ts: string;
+  columns_mapped: Record<string, string>;
+}
+
+export interface ApiPipelineSummary {
+  dataset_name: string;
+  stats: ApiIngestionStats;
+  agent_logs: ApiAgentLogEntry[];
+  alerts_generated: ApiAlertSummary[];
+  high_risk_count: number;
+  total_suspicious_volume_inr: number;
+  elapsed_seconds: number;
+}
+
+export interface ApiRegulatoryDossier {
+  alert_id: string;
+  case_ref: string;
+  generated_at: string;
+  risk_level: string;
+  typology: string;
+  total_amount_inr: number;
+  total_amount_formatted: string;
+  participants_count: number;
+  transactions_count: number;
+  executive_summary: string;
+  participant_breakdown: Array<{
+    account_id: string;
+    role: string;
+    inflow_inr: number;
+    inflow_formatted: string;
+    outflow_inr: number;
+    outflow_formatted: string;
+    net_balance_inr: number;
+  }>;
+  chronological_trail: Array<{
+    hop: string;
+    source: string;
+    target: string;
+    amount_inr: number;
+    amount_formatted: string;
+    timestamp: string;
+    hop_index: number;
+  }>;
+  shap_factors: Array<{
+    feature: string;
+    value: number;
+    contribution: number;
+  }>;
+  statutory_triggers: string[];
+  recommended_actions: string[];
+  raw_markdown: string;
+}
+
+export async function runPipelineAnalysis(
+  fileOrContent: File | string,
+  filename: string = "dataset.csv"
+): Promise<ApiPipelineSummary> {
+  if (fileOrContent instanceof File) {
+    const formData = new FormData();
+    formData.append("file", fileOrContent);
+    formData.append("filename", fileOrContent.name);
+    const res = await fetch(`${API_BASE}/pipeline/analyze`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`Analysis failed: ${res.statusText}`);
+    return res.json();
+  } else {
+    const res = await fetch(`${API_BASE}/pipeline/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: fileOrContent, filename }),
+    });
+    if (!res.ok) throw new Error(`Analysis failed: ${res.statusText}`);
+    return res.json();
+  }
+}
+
+export async function fetchRegulatoryDossier(alertId: string): Promise<ApiRegulatoryDossier> {
+  const res = await fetch(`${API_BASE}/pipeline/dossier/${encodeURIComponent(alertId)}`);
+  if (!res.ok) throw new Error(`Failed to fetch regulatory dossier: ${res.statusText}`);
+  return res.json();
+}
+
+export async function fetchSampleDataset(): Promise<{ filename: string; csv: string }> {
+  const res = await fetch(`${API_BASE}/pipeline/sample-dataset`);
+  if (!res.ok) throw new Error(`Failed to fetch sample dataset: ${res.statusText}`);
+  return res.json();
+}
+
 /**
  * Format an amount in Indian Rupees (₹)
  */

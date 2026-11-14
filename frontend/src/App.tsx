@@ -8,6 +8,9 @@ import {
   fetchMetrics,
   injectRedTeam,
   deleteRedTeam,
+  runPipelineAnalysis,
+  fetchRegulatoryDossier,
+  fetchSampleDataset,
   formatINR,
   formatTypology,
   type ApiAlertSummary,
@@ -16,11 +19,16 @@ import {
   type ApiGraphEdge,
   type ApiMetrics,
   type ApiRedTeamResult,
+  type ApiAgentLogEntry,
+  type ApiPipelineSummary,
+  type ApiRegulatoryDossier,
 } from "./api";
 import { computeGraphLayout, type LayoutNode, type LayoutEdge } from "./graphLayout";
 import { LandingPage } from "./LandingPage";
 import { AuthScreen } from "./AuthScreen";
 import { LaunderLensLoader } from "./LaunderLensLoader";
+import { RegulatoryDossierModal } from "./DossierModal";
+import { SwarmTracker } from "./SwarmTracker";
 import {
   supabase,
   isSupabaseConfigured,
@@ -405,107 +413,117 @@ function DatasetsManager({
   const [uploadPhase, setUploadPhase] = useState("");
   const [pasteMode, setPasteMode] = useState(false);
   const [pastedContent, setPastedContent] = useState("");
+  const [swarmSummary, setSwarmSummary] = useState<ApiPipelineSummary | null>(null);
+  const [activeStep, setActiveStep] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Generate & Download sample CSV
-  const handleDownloadSample = () => {
-    const csvContent = `hop,from_account,to_account,amount_inr,timestamp_utc,typology_tag
-01,8A3F-21C0,MULE-1001,21800.00,2026-11-14 09:42:08,Scatter-gather
-01,8A3F-21C0,MULE-1002,24200.00,2026-11-14 09:43:12,Scatter-gather
-01,8A3F-21C0,MULE-1003,19900.00,2026-11-14 09:44:37,Scatter-gather
-02,MULE-1001,MULE-1006,20900.00,2026-11-14 09:49:04,Layering
-03,MULE-1006,C71D-9B04,63200.00,2026-11-14 09:56:42,Reconsolidation
-01,ACC-5521,INT-9011,45000.00,2026-11-14 10:02:15,Fan-out
-02,INT-9011,ACC-5521,44100.00,2026-11-14 10:14:22,Cycle
+  // Generate & Download sample CSV from backend
+  const handleDownloadSample = async () => {
+    try {
+      const sample = await fetchSampleDataset();
+      const blob = new Blob([sample.csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", sample.filename || "launderlens_sample_aml_dataset_inr.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch {
+      // Offline fallback
+      const csvContent = `transaction_id,source_account,target_account,amount,timestamp
+TX-1001,ACC-CORP-ORIGIN,MULE-NODE-881,48500.00,2026-11-14T10:02:15Z
+TX-1002,ACC-CORP-ORIGIN,MULE-NODE-882,49200.00,2026-11-14T10:05:30Z
+TX-1003,ACC-CORP-ORIGIN,MULE-NODE-883,47800.00,2026-11-14T10:09:45Z
+TX-1004,MULE-NODE-881,ACC-OFFSHORE-EXIT,48000.00,2026-11-14T10:22:10Z
+TX-1005,MULE-NODE-882,ACC-OFFSHORE-EXIT,48900.00,2026-11-14T10:26:40Z
+TX-1006,MULE-NODE-883,ACC-OFFSHORE-EXIT,47500.00,2026-11-14T10:31:05Z
 `;
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "launderlens_sample_aml_dataset_inr.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "launderlens_sample_aml_dataset_inr.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
-  const processRawCSV = (filename: string, content: string) => {
+  const executePipeline = async (fileOrContent: File | string, filename: string) => {
     setIsProcessing(true);
+    setErrorMessage(null);
     setUploadProgress(15);
-    setUploadPhase("Validating CSV schema and transaction records…");
+    setActiveStep(0);
+    setUploadPhase("Agent 1: Ingestion & Schema Synthesizer validating transaction records…");
 
-    setTimeout(() => {
-      setUploadProgress(45);
-      setUploadPhase("Constructing temporal graph topology & account nodes…");
-    }, 400);
+    const timer = setInterval(() => {
+      setActiveStep((prev) => {
+        const next = Math.min(prev + 1, 5);
+        if (next === 1) setUploadPhase("Agent 2: Graph Reconstruction & Money Trail Tracer building NetworkX topology…");
+        else if (next === 2) setUploadPhase("Agent 3: Typology & Anomaly Pattern Scout mining cycles & layering rings…");
+        else if (next === 3) setUploadPhase("Agent 4: Explainable ML Risk Scorer evaluating TreeSHAP factor attributions…");
+        else if (next === 4) setUploadPhase("Agent 5: Forensic LLM Explainer generating legal compliance narratives…");
+        else if (next === 5) setUploadPhase("Agent 6: Regulatory Dossier & SAR Generator compiling audit reports…");
+        return next;
+      });
+      setUploadProgress((p) => Math.min(p + 16, 92));
+    }, 280);
 
-    setTimeout(() => {
-      setUploadProgress(75);
-      setUploadPhase("Running Louvain community detection & cycle analysis…");
-    }, 800);
-
-    setTimeout(() => {
+    try {
+      const summary = await runPipelineAnalysis(fileOrContent, filename);
+      clearInterval(timer);
       setUploadProgress(100);
-      setUploadPhase("Ingestion complete. Subgraphs generated.");
+      setActiveStep(6);
+      setSwarmSummary(summary);
+      setIsProcessing(false);
 
-      // Parse lines
-      const lines = content.split("\n").filter((l) => l.trim().length > 0);
-      const rowCount = Math.max(lines.length - 1, 5);
-
-      const parsedRows: TransactionRow[] = [];
-      for (let i = 1; i < Math.min(lines.length, 6); i++) {
-        const parts = lines[i].split(",").map((s) => s.trim());
-        if (parts.length >= 5) {
-          parsedRows.push({
-            hop: parts[0] || `0${i}`,
-            from: parts[1] || `ACC-${1000 + i}`,
-            to: parts[2] || `MULE-${2000 + i}`,
-            amount: parts[3]?.startsWith("₹") ? parts[3] : `₹${Number(parts[3] || 25000).toLocaleString("en-IN")}`,
-            timestamp: parts[4] || "2026-11-14 10:00:00",
-            typology: parts[5] || "User Uploaded Subgraph",
-          });
-        }
-      }
-
-      if (parsedRows.length === 0) {
-        parsedRows.push(
-          { hop: "01", from: "USR-ENTRY-01", to: "MULE-8801", amount: "₹35,000.00", timestamp: "2026-11-14 10:15:00", typology: "Scatter-gather" },
-          { hop: "02", from: "MULE-8801", to: "EXIT-COLLECT-9", amount: "₹34,200.00", timestamp: "2026-11-14 10:28:30", typology: "Reconsolidation" }
-        );
-      }
+      const parsedRows: TransactionRow[] = summary.alerts_generated.slice(0, 5).map((a, i) => ({
+        hop: `0${i + 1}`,
+        from: `ACC-ORIGIN-${i + 1}`,
+        to: `MULE-${8800 + i}`,
+        amount: formatINR(a.total_amount),
+        timestamp: a.first_ts,
+        typology: formatTypology(a.typology),
+      }));
 
       const newDataset: Dataset = {
         id: `custom-ds-${Date.now()}`,
         name: filename.replace(/\.[^/.]+$/, "").replace(/_/g, " "),
         filename,
         uploadedAt: "Uploaded just now",
-        recordsCount: rowCount * 12,
-        volumeInr: `₹${(rowCount * 48500).toLocaleString("en-IN")}`,
-        suspiciousRingsCount: Math.max(3, Math.floor(rowCount / 2)),
-        source: "User Uploaded Transaction Log",
-        alerts: [
-          { id: `A-${Math.floor(25000 + Math.random() * 5000)}`, typology: "Scatter-gather", risk: 0.92, accounts: 11, amount: `₹${(rowCount * 32000).toLocaleString("en-IN")}`, status: "Open", missed: true },
-          { id: `A-${Math.floor(25000 + Math.random() * 5000)}`, typology: "Cycle", risk: 0.86, accounts: 7, amount: `₹${(rowCount * 18000).toLocaleString("en-IN")}`, status: "Reviewing", missed: true },
-          { id: `A-${Math.floor(25000 + Math.random() * 5000)}`, typology: "Pass-through", risk: 0.78, accounts: 4, amount: `₹${(rowCount * 12500).toLocaleString("en-IN")}`, status: "Open", missed: false },
-        ],
+        recordsCount: summary.stats.valid_rows,
+        volumeInr: formatINR(summary.stats.total_volume_inr),
+        suspiciousRingsCount: summary.alerts_generated.length,
+        source: `Multi-Agent AML Swarm (${summary.stats.file_type.toUpperCase()})`,
+        alerts: summary.alerts_generated.map((a) => ({
+          id: a.alert_id,
+          typology: formatTypology(a.typology),
+          risk: a.risk_score,
+          accounts: a.n_accounts,
+          amount: formatINR(a.total_amount),
+          status: "Open",
+          missed: !a.baseline_flagged,
+        })),
         sampleRows: parsedRows,
       };
 
       onAddDataset(newDataset);
-      setIsProcessing(false);
+      onSelectDataset(newDataset);
       setPasteMode(false);
       setPastedContent("");
-    }, 1300);
+    } catch (err: any) {
+      clearInterval(timer);
+      setIsProcessing(false);
+      setErrorMessage(err.message || "Pipeline execution failed. Please verify file format.");
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target?.result as string;
-      processRawCSV(file.name, text || "");
-    };
-    reader.readAsText(file);
+    executePipeline(file, file.name);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -513,12 +531,7 @@ function DatasetsManager({
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const text = evt.target?.result as string;
-        processRawCSV(file.name, text || "");
-      };
-      reader.readAsText(file);
+      executePipeline(file, file.name);
     }
   };
 
@@ -561,6 +574,17 @@ function DatasetsManager({
           </div>
         </div>
 
+        {/* Live Multi-Agent Swarm Tracker */}
+        {(isProcessing || swarmSummary) && (
+          <div style={{ marginBottom: 16 }}>
+            <SwarmTracker
+              isProcessing={isProcessing}
+              activeStep={activeStep}
+              summary={swarmSummary}
+            />
+          </div>
+        )}
+
         {/* Top Grid: Upload Zone vs Benchmark Presets */}
         <div className="datasets-top-grid">
           {/* Upload Dropzone */}
@@ -568,7 +592,7 @@ function DatasetsManager({
             <div className="panel-heading" style={{ border: 0, padding: "0 0 12px 0", minHeight: "auto" }}>
               <div>
                 <h2>Upload Transaction Dataset from User Side</h2>
-                <p>Upload your bank's transaction log in CSV or JSON with INR amounts.</p>
+                <p>Upload your bank's transaction log in CSV or Excel (.xlsx) with INR amounts.</p>
               </div>
               <button
                 className="text-button"
@@ -578,6 +602,22 @@ function DatasetsManager({
               </button>
             </div>
 
+            {errorMessage && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  background: "#FDE8E8",
+                  border: "1px solid #F8B4B4",
+                  borderRadius: 6,
+                  color: "#C23B3B",
+                  fontSize: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <strong>Ingestion Error: </strong> {errorMessage}
+              </div>
+            )}
+
             {isProcessing ? (
               <div style={{ padding: "40px 20px", textAlign: "center" }}>
                 <div className="spinner" style={{ width: 28, height: 28, margin: "0 auto 16px", borderColor: "var(--accent)", borderTopColor: "transparent" }} />
@@ -585,7 +625,7 @@ function DatasetsManager({
                 <div style={{ height: 6, background: "#ede7f8", borderRadius: 3, margin: "14px auto", maxWidth: 300, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${uploadProgress}%`, background: "var(--accent)", transition: "width 0.3s" }} />
                 </div>
-                <small style={{ color: "var(--secondary)", fontSize: 10 }}>Extracting subgraphs, cycle pathways, and SHAP features…</small>
+                <small style={{ color: "var(--secondary)", fontSize: 10 }}>Autonomous 6-Agent Swarm processing graph topology & TreeSHAP attributions…</small>
               </div>
             ) : pasteMode ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -600,14 +640,14 @@ function DatasetsManager({
                     fontSize: 10.5,
                     resize: "none",
                   }}
-                  placeholder="hop,from_account,to_account,amount_inr,timestamp_utc,typology&#10;01,8A3F-21C0,MULE-1001,21800.00,2026-11-14 09:42:08,Scatter-gather&#10;02,MULE-1001,MULE-1006,20900.00,2026-11-14 09:49:04,Layering"
+                  placeholder="transaction_id,source_account,target_account,amount,timestamp&#10;TX-1001,ACC-CORP-ORIGIN,MULE-NODE-881,48500.00,2026-11-14T10:02:15Z&#10;TX-1002,ACC-CORP-ORIGIN,MULE-NODE-882,49200.00,2026-11-14T10:05:30Z"
                   value={pastedContent}
                   onChange={(e) => setPastedContent(e.target.value)}
                 />
                 <button
                   className="button primary"
                   disabled={!pastedContent.trim()}
-                  onClick={() => processRawCSV("custom_pasted_transactions.csv", pastedContent)}
+                  onClick={() => executePipeline(pastedContent, "custom_pasted_transactions.csv")}
                 >
                   <Icon name="upload" /> Parse & Ingest Pasted Transactions
                 </button>
@@ -627,18 +667,18 @@ function DatasetsManager({
                   type="file"
                   ref={fileInputRef}
                   style={{ display: "none" }}
-                  accept=".csv,.json,.txt"
+                  accept=".csv,.xlsx,.xls,.json,.txt"
                   onChange={handleFileChange}
                 />
                 <span className="dropzone-icon">
                   <Icon name="upload" size={24} />
                 </span>
                 <h3>Drop your transaction file here, or browse</h3>
-                <p>Supports .CSV, .JSON (Auto-detects account nodes, timestamps, and INR transaction amounts)</p>
+                <p>Supports .CSV, .XLSX (Excel), .JSON (Auto-detects account nodes, timestamps, and INR transaction amounts)</p>
                 <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
                   <Badge tone="neutral">₹ INR Native</Badge>
-                  <Badge tone="neutral">Auto-Graph Schema</Badge>
-                  <Badge tone="neutral">Max 250MB</Badge>
+                  <Badge tone="neutral">Excel & CSV</Badge>
+                  <Badge tone="neutral">Multi-Agent Swarm</Badge>
                 </div>
               </div>
             )}
@@ -2584,6 +2624,9 @@ function Investigation({
   const [detail, setDetail] = useState<ApiAlertDetail | null>(null);
   const [graph, setGraph] = useState<ApiGraphPayload | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showDossier, setShowDossier] = useState(false);
+  const [dossier, setDossier] = useState<ApiRegulatoryDossier | null>(null);
+  const [loadingDossier, setLoadingDossier] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -2752,6 +2795,24 @@ function Investigation({
           <button className="button danger" onClick={() => handleUpdateStatus("Confirmed")}>
             <Icon name="check" /> Confirm as laundering
           </button>
+          <button
+            className="button primary"
+            onClick={async () => {
+              setShowDossier(true);
+              setLoadingDossier(true);
+              try {
+                const d = await fetchRegulatoryDossier(alertIdDisplay);
+                setDossier(d);
+              } catch (err) {
+                console.error("Failed to load dossier", err);
+              } finally {
+                setLoadingDossier(false);
+              }
+            }}
+            style={{ display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <Icon name="shield" size={14} /> Official SAR Dossier
+          </button>
         </div>
       </div>
 
@@ -2900,6 +2961,12 @@ function Investigation({
           </section>
         </aside>
       </div>
+
+      <RegulatoryDossierModal
+        dossier={dossier}
+        loading={loadingDossier}
+        onClose={() => setShowDossier(false)}
+      />
     </main>
   );
 }
