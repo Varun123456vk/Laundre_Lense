@@ -30,6 +30,7 @@ import { LaunderLensLoader } from "./LaunderLensLoader";
 import { RegulatoryDossierModal } from "./DossierModal";
 import { SwarmTracker } from "./SwarmTracker";
 import { AICopilotPanel } from "./AICopilotPanel";
+import { AgentInspectorModal } from "./AgentInspectorModal";
 import {
   supabase,
   isSupabaseConfigured,
@@ -238,6 +239,7 @@ function AppHeader({
   activeDataset,
   onOpenDatasets,
   backendOnline = false,
+  onOpenSwarm,
 }: {
   screen: Screen;
   setScreen: (screen: Screen) => void;
@@ -247,6 +249,7 @@ function AppHeader({
   activeDataset: Dataset;
   onOpenDatasets: () => void;
   backendOnline?: boolean;
+  onOpenSwarm?: (agentId?: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -294,6 +297,18 @@ function AppHeader({
 
       {/* Right: Consolidated Tools & Profile */}
       <div className="header-tools">
+        {/* 6 AI Agents Swarm Pill */}
+        <button
+          onClick={() => onOpenSwarm?.("agent-1-ingest")}
+          className="dataset-pill"
+          title="Inspect the 6 Autonomous AI AML Agents"
+          style={{ background: "#F0EEF8", borderColor: "#D4CDE6", color: "#5B2BB5", fontWeight: 600, cursor: "pointer" }}
+        >
+          <Icon name="spark" size={13} />
+          <span>6 AI Agents</span>
+          <span className="dataset-switch-tag" style={{ background: "#5B2BB5", color: "#FFFFFF" }}>Inspect</span>
+        </button>
+
         {/* Active Dataset Dropdown Pill */}
         <button
           onClick={onOpenDatasets}
@@ -401,12 +416,14 @@ function DatasetsManager({
   onSelectDataset,
   onAddDataset,
   onOpenAlert,
+  onOpenAgentInspector,
 }: {
   datasets: Dataset[];
   activeDataset: Dataset;
   onSelectDataset: (ds: Dataset) => void;
   onAddDataset: (newDs: Dataset) => void;
   onOpenAlert: () => void;
+  onOpenAgentInspector?: (agentId: string) => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -575,16 +592,15 @@ TX-1006,MULE-NODE-883,ACC-OFFSHORE-EXIT,47500.00,2026-11-14T10:31:05Z
           </div>
         </div>
 
-        {/* Live Multi-Agent Swarm Tracker */}
-        {(isProcessing || swarmSummary) && (
-          <div style={{ marginBottom: 16 }}>
-            <SwarmTracker
-              isProcessing={isProcessing}
-              activeStep={activeStep}
-              summary={swarmSummary}
-            />
-          </div>
-        )}
+        {/* Autonomous 6-Agent Swarm Section - ALWAYS VISIBLE */}
+        <div style={{ marginBottom: 20 }}>
+          <SwarmTracker
+            isProcessing={isProcessing}
+            activeStep={activeStep}
+            summary={swarmSummary}
+            onSelectAgent={(agentId) => onOpenAgentInspector?.(agentId)}
+          />
+        </div>
 
         {/* Top Grid: Upload Zone vs Benchmark Presets */}
         <div className="datasets-top-grid">
@@ -3443,6 +3459,8 @@ export default function App() {
   const [backendOnline, setBackendOnline] = useState<boolean>(false);
   const [liveMetrics, setLiveMetrics] = useState<ApiMetrics | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [inspectedAgentId, setInspectedAgentId] = useState<string | null>(null);
+  const [globalSwarmSummary, setGlobalSwarmSummary] = useState<ApiPipelineSummary | null>(null);
 
   const addActivity = (
     event: string,
@@ -3670,6 +3688,7 @@ export default function App() {
         activeDataset={activeDataset}
         onOpenDatasets={() => setScreen("datasets")}
         backendOnline={backendOnline}
+        onOpenSwarm={(agentId) => setInspectedAgentId(agentId || "agent-1-ingest")}
       />
       {screen === "overview" && (
         <Overview
@@ -3692,8 +3711,11 @@ export default function App() {
           datasets={datasets}
           activeDataset={activeDataset}
           onSelectDataset={(ds) => setActiveDataset(ds)}
-          onAddDataset={handleAddDataset}
+          onAddDataset={(newDs) => {
+            handleAddDataset(newDs);
+          }}
           onOpenAlert={() => handleOpenAlert()}
+          onOpenAgentInspector={(agentId) => setInspectedAgentId(agentId)}
         />
       )}
       {screen === "simulation" && (
@@ -3704,6 +3726,25 @@ export default function App() {
           }
         />
       )}
+
+      {/* Global AI Agent Inspector Modal */}
+      <AgentInspectorModal
+        agentId={inspectedAgentId}
+        summary={globalSwarmSummary}
+        onClose={() => setInspectedAgentId(null)}
+        onOpenGraph={() => {
+          setInspectedAgentId(null);
+          setScreen("investigation");
+        }}
+        onOpenCopilot={() => {
+          setInspectedAgentId(null);
+          setScreen("investigation");
+        }}
+        onOpenDossier={() => {
+          setInspectedAgentId(null);
+          setScreen("investigation");
+        }}
+      />
     </div>
   );
 }

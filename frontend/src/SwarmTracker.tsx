@@ -6,6 +6,7 @@ interface SwarmTrackerProps {
   isProcessing: boolean;
   activeStep: number;
   summary: ApiPipelineSummary | null;
+  onSelectAgent?: (agentId: string) => void;
 }
 
 interface AgentMeta {
@@ -65,6 +66,7 @@ export const SwarmTracker: React.FC<SwarmTrackerProps> = ({
   isProcessing,
   activeStep,
   summary,
+  onSelectAgent,
 }) => {
   return (
     <div
@@ -197,6 +199,7 @@ export const SwarmTracker: React.FC<SwarmTrackerProps> = ({
           return (
             <div
               key={agent.id}
+              onClick={() => onSelectAgent?.(agent.id)}
               style={{
                 background: isCurrent ? "#F9F8FC" : "#FFFFFF",
                 border: `1px solid ${
@@ -206,7 +209,9 @@ export const SwarmTracker: React.FC<SwarmTrackerProps> = ({
                 padding: 12,
                 transition: "all 0.2s ease",
                 boxShadow: isCurrent ? "0 0 0 1px #5B2BB5" : "none",
+                cursor: "pointer",
               }}
+              title={`Click to open Agent ${idx + 1} (${agent.name})`}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -277,6 +282,33 @@ export const SwarmTracker: React.FC<SwarmTrackerProps> = ({
               >
                 {logEntry ? logEntry.details : agent.description}
               </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: 10,
+                  paddingTop: 8,
+                  borderTop: "1px dashed #EDEBF2",
+                }}
+              >
+                <span style={{ fontSize: 10, color: "#6A6180", fontFamily: "JetBrains Mono" }}>
+                  Inspect Agent Output
+                </span>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    color: "#5B2BB5",
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                  }}
+                >
+                  Open ➔
+                </span>
+              </div>
             </div>
           );
         })}
@@ -284,3 +316,4 @@ export const SwarmTracker: React.FC<SwarmTrackerProps> = ({
     </div>
   );
 };
+
