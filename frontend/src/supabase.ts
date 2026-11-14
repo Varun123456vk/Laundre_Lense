@@ -1,9 +1,16 @@
 import { createClient, type SupabaseClient, type User as SupabaseAuthUser } from "@supabase/supabase-js";
 import type { User } from "./App";
 
-// Retrieve environment variables (configured via frontend/.env)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// Retrieve and sanitize environment variables (configured via frontend/.env)
+let rawUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
+if (rawUrl && rawUrl.includes("supabase.com/dashboard/project/")) {
+  const projId = rawUrl.split("supabase.com/dashboard/project/")[1]?.split("/")[0]?.split("?")[0];
+  if (projId) {
+    rawUrl = `https://${projId}.supabase.co`;
+  }
+}
+const supabaseUrl = rawUrl?.replace(/\/+$/, "");
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
 
 export const isSupabaseConfigured = (): boolean => {
   return Boolean(
@@ -107,3 +114,4 @@ export function mapSupabaseUserToUser(sbUser: SupabaseAuthUser): User {
     department: meta.department || "Google Verified Authentication Desk",
   };
 }
+
