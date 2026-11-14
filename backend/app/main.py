@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.agents.agent_types import PipelineSummary, RegulatoryDossier
 from app.agents.agent_6_dossier import generate_regulatory_dossier
 from app.agents.orchestrator import get_cached_dossier, run_pipeline
+from app.copilot import ChatRequest, ChatResponse, process_copilot_chat
 from app.db import (
     get_alert_detail as db_get_alert_detail,
     get_alert_graph as db_get_alert_graph,
@@ -261,4 +262,14 @@ def get_sample_dataset() -> dict:
         "TX-3004,ACC-SYNDICATE-FEEDER,ACC-RECV-04,45100.00,2026-11-14T12:15:00Z\n"
     )
     return {"filename": "sample_aml_syndicate_inr.csv", "csv": csv_content}
+
+
+# ── AI Forensic Copilot ───────────────────────
+@app.post("/agent/chat", response_model=ChatResponse)
+async def copilot_chat(
+    body: ChatRequest,
+    db: Session = Depends(get_db),
+) -> ChatResponse:
+    return await process_copilot_chat(body, db=db)
+
 

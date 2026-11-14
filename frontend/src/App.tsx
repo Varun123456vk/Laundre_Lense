@@ -29,6 +29,7 @@ import { AuthScreen } from "./AuthScreen";
 import { LaunderLensLoader } from "./LaunderLensLoader";
 import { RegulatoryDossierModal } from "./DossierModal";
 import { SwarmTracker } from "./SwarmTracker";
+import { AICopilotPanel } from "./AICopilotPanel";
 import {
   supabase,
   isSupabaseConfigured,
@@ -2627,6 +2628,7 @@ function Investigation({
   const [showDossier, setShowDossier] = useState(false);
   const [dossier, setDossier] = useState<ApiRegulatoryDossier | null>(null);
   const [loadingDossier, setLoadingDossier] = useState(false);
+  const [showCopilot, setShowCopilot] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -2813,6 +2815,21 @@ function Investigation({
           >
             <Icon name="shield" size={14} /> Official SAR Dossier
           </button>
+          <button
+            className="button secondary"
+            onClick={() => setShowCopilot(!showCopilot)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: showCopilot ? "#EFEBF8" : undefined,
+              borderColor: showCopilot ? "#5B2BB5" : undefined,
+              color: showCopilot ? "#5B2BB5" : undefined,
+              fontWeight: 600,
+            }}
+          >
+            <Icon name="spark" size={14} /> {showCopilot ? "Hide Copilot" : "AI Copilot"}
+          </button>
         </div>
       </div>
 
@@ -2966,6 +2983,13 @@ function Investigation({
         dossier={dossier}
         loading={loadingDossier}
         onClose={() => setShowDossier(false)}
+      />
+
+      <AICopilotPanel
+        alertId={alertIdDisplay}
+        isOpen={showCopilot}
+        onClose={() => setShowCopilot(false)}
+        onOpenDossier={() => setShowDossier(true)}
       />
     </main>
   );

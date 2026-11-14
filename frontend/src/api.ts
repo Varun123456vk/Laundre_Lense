@@ -261,6 +261,38 @@ export async function fetchSampleDataset(): Promise<{ filename: string; csv: str
   return res.json();
 }
 
+// ---------- AI Forensic Copilot API ----------
+
+export interface ApiCopilotMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+export interface ApiCopilotResponse {
+  reply: string;
+  suggested_actions: string[];
+  tools_used: string[][];
+  source: string;
+}
+
+export async function postCopilotChat(
+  alertId: string,
+  message: string,
+  history: ApiCopilotMessage[] = []
+): Promise<ApiCopilotResponse> {
+  const res = await fetch(`${API_BASE}/agent/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      alert_id: alertId,
+      message,
+      history,
+    }),
+  });
+  if (!res.ok) throw new Error(`Copilot chat failed: ${res.statusText}`);
+  return res.json();
+}
+
 /**
  * Format an amount in Indian Rupees (₹)
  */
