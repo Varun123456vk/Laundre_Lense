@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment secrets
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (large)
+data/*.parquet
+data/*.pkl
+data/*.joblib
+data/*.txt
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Docker
+*.log
+

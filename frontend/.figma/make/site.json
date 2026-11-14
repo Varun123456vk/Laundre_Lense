@@ -1,0 +1,10 @@
+{
+  "description": "Helps financial investigators detect suspicious transaction networks, explain risk signals, and manage AML alerts with graph analytics and simulation tools.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
