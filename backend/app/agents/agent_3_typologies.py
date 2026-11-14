@@ -147,3 +147,4 @@ def detect_patterns_in_graph(G: nx.DiGraph) -> List[PatternCandidate]:
         )
 
     return candidates
+

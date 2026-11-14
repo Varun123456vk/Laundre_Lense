@@ -153,3 +153,4 @@ def build_graph_payload(subgraph: nx.DiGraph, roles: Dict[str, Role]) -> GraphPa
         )
 
     return GraphPayload(nodes=nodes, edges=edges)
+

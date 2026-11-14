@@ -232,3 +232,4 @@ async def run_pipeline(
 
 # Alias
 analyze_transactions_dataset = run_pipeline
+

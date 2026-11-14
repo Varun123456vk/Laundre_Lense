@@ -163,3 +163,4 @@ async def generate_forensic_explanation(
 
     # Fallback if API fails or network timeout
     return _generate_template_narrative(candidate, risk_score, shap), "template"
+

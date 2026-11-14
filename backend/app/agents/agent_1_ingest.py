@@ -182,3 +182,4 @@ def ingest_and_validate(
     )
 
     return clean_df, stats
+

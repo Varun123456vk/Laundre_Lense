@@ -153,3 +153,4 @@ def evaluate_ring_risk(candidate: PatternCandidate) -> Tuple[float, List[ShapIte
     baseline_flagged = bool(has_large_single_txn and typology != "cycle" and typology != "scatter_gather")
 
     return final_score, shap_items, baseline_flagged
+

@@ -78,3 +78,4 @@ class PipelineSummary(BaseModel):
     high_risk_count: int
     total_suspicious_volume_inr: float
     elapsed_seconds: float
+
