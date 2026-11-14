@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { User } from "./App";
+import { LaunderLensLoader } from "./LaunderLensLoader";
 
 interface AuthScreenProps {
   initialMode?: "signin" | "signup";
@@ -83,7 +84,7 @@ export function AuthScreen({
         department: "Financial Crime & Intelligence Unit",
       });
       setIsSubmitting(false);
-    }, 550);
+    }, 2200);
   };
 
   // Sign Up submit handler
@@ -137,15 +138,25 @@ export function AuthScreen({
       };
 
       setSuccessMessage(`Account registered successfully for ${newUser.name}! Redirecting...`);
-      setTimeout(() => {
-        onLogin(newUser);
-        setIsSubmitting(false);
-      }, 400);
-    }, 700);
+      onLogin(newUser);
+      setIsSubmitting(false);
+    }, 2200);
   };
 
   return (
     <div className="auth-wrapper">
+      {isSubmitting && (
+        <LaunderLensLoader
+          variant="fullscreen"
+          durationMs={2200}
+          message={
+            mode === "signin"
+              ? "Authenticating credentials and verifying institutional clearance..."
+              : "Registering investigator profile and generating secure workspace..."
+          }
+          onComplete={() => {}}
+        />
+      )}
       {/* Top utility row with back button */}
       <div className="auth-top-bar">
         <button

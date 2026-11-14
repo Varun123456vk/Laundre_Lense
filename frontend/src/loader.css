@@ -1,0 +1,384 @@
+/* ==========================================================================
+   LAUNDERLENS - PREMIUM INTELLIGENT LOADER ANIMATION STYLES
+   Design System: Stripe / Linear / Palantir Fintech Cyberpunk
+   Palette: #F7F6F9, #FFFFFF, #1D1530, #6A6180, #5B2BB5, #E3E0EA,
+            #C23B3B (High), #C9811A (Medium), #5C8A5C (Low)
+   ========================================================================== */
+
+/* Fullscreen Overlay Container */
+.ll-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: #F7F6F9;
+  background-image: 
+    radial-gradient(circle at 50% 30%, #ECE6F7 0%, transparent 65%),
+    linear-gradient(to bottom, #F7F6F9 0%, #F1EEF5 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.5s;
+}
+
+.ll-loader-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Compact Variant Container (for modals / inline widgets) */
+.ll-loader-compact {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: #FFFFFF;
+  border: 1px solid #E3E0EA;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(29, 21, 48, 0.08);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Main Loader Card Frame */
+.ll-loader-card {
+  width: 100%;
+  max-width: 580px;
+  background: #FFFFFF;
+  border: 1px solid #E3E0EA;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(29, 21, 48, 0.09), 0 2px 8px rgba(29, 21, 48, 0.04);
+  padding: 32px 32px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top Subtle Security / Protocol Badge */
+.ll-loader-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: #F4EFFC;
+  border: 1px solid #E5DAF7;
+  border-radius: 999px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #5B2BB5;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  animation: llBadgePulse 2.5s infinite ease-in-out;
+}
+
+.ll-loader-beacon-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #5B2BB5;
+  box-shadow: 0 0 0 0 rgba(91, 43, 181, 0.5);
+  animation: llDotRipple 1.8s infinite;
+}
+
+/* Graphic Stage Canvas */
+.ll-loader-canvas-container {
+  width: 100%;
+  max-width: 500px;
+  height: 260px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0 16px;
+}
+
+.ll-loader-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Node Animations & Glows */
+.ll-node-pulse {
+  animation: llNodePulse 2s infinite ease-in-out;
+}
+
+.ll-glow-entry {
+  filter: drop-shadow(0 0 8px rgba(46, 158, 107, 0.5));
+}
+
+.ll-glow-mule {
+  filter: drop-shadow(0 0 9px rgba(201, 129, 26, 0.55));
+}
+
+.ll-glow-hub {
+  filter: drop-shadow(0 0 10px rgba(91, 43, 181, 0.6));
+}
+
+.ll-glow-exit {
+  filter: drop-shadow(0 0 11px rgba(194, 59, 59, 0.65));
+}
+
+/* Edge & Pathway Animations */
+.ll-edge-normal {
+  stroke: #DED3F2;
+  stroke-width: 1.5;
+  transition: stroke 0.4s ease, stroke-width 0.4s ease;
+}
+
+.ll-edge-active {
+  stroke: #5B2BB5;
+  stroke-width: 2;
+}
+
+.ll-edge-suspicious {
+  stroke: #C23B3B;
+  stroke-width: 2.2;
+  stroke-dasharray: 6 3;
+  animation: llDashMove 1s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(194, 59, 59, 0.5));
+}
+
+.ll-edge-mule-transit {
+  stroke: #C9811A;
+  stroke-width: 1.8;
+  stroke-dasharray: 4 3;
+  animation: llDashMove 1.4s linear infinite;
+}
+
+/* Radar Scan Line */
+.ll-radar-sweep {
+  transform-origin: 250px 130px;
+  animation: llRadarRotate 3s linear infinite;
+}
+
+/* Moving Transaction Indicator Particles */
+.ll-particle {
+  fill: #5B2BB5;
+  filter: drop-shadow(0 0 3px rgba(91, 43, 181, 0.7));
+}
+
+.ll-particle-suspicious {
+  fill: #C23B3B;
+  filter: drop-shadow(0 0 4px rgba(194, 59, 59, 0.9));
+}
+
+/* Dynamic Status Narrative Area */
+.ll-loader-info {
+  width: 100%;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.ll-loader-phase-title {
+  font-family: "Inter", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1D1530;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ll-loader-message {
+  font-family: "Inter", sans-serif;
+  font-size: 12.5px;
+  color: #6A6180;
+  margin: 0 0 16px 0;
+  line-height: 1.45;
+  min-height: 20px;
+  transition: color 0.25s ease;
+}
+
+/* Progress Bar & Telemetry Row */
+.ll-loader-progress-section {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.ll-loader-progress-track {
+  width: 100%;
+  height: 5px;
+  background-color: #E3E0EA;
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.ll-loader-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5B2BB5 0%, #7A4CD3 100%);
+  border-radius: 999px;
+  transition: width 0.2s cubic-bezier(0.1, 0.8, 0.3, 1);
+  position: relative;
+}
+
+.ll-loader-progress-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: llProgressShimmer 1.5s infinite;
+}
+
+.ll-loader-telemetry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+}
+
+.ll-loader-telemetry-status {
+  color: #6A6180;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.ll-loader-telemetry-status strong {
+  color: #1D1530;
+  font-weight: 700;
+}
+
+.ll-loader-telemetry-pct {
+  color: #5B2BB5;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* Live Intelligence Log Pill */
+.ll-loader-live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  background: #F7F6F9;
+  border: 1px solid #E3E0EA;
+  border-radius: 4px;
+  color: #1D1530;
+  margin-top: 14px;
+}
+
+.ll-loader-live-tag.danger {
+  background: #FDF2F2;
+  border-color: #F8B4B4;
+  color: #9B1C1C;
+}
+
+.ll-loader-live-tag.success {
+  background: #DEF7EC;
+  border-color: #BCF0DA;
+  color: #03543F;
+}
+
+/* Keyframes */
+@keyframes llBadgePulse {
+  0%, 100% {
+    border-color: #E5DAF7;
+    background-color: #F4EFFC;
+  }
+  50% {
+    border-color: #D3BFF5;
+    background-color: #EFE8FA;
+  }
+}
+
+@keyframes llDotRipple {
+  0% {
+    box-shadow: 0 0 0 0 rgba(91, 43, 181, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(91, 43, 181, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(91, 43, 181, 0);
+  }
+}
+
+@keyframes llNodePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes llDashMove {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes llRadarRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes llProgressShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  .ll-loader-overlay,
+  .ll-node-pulse,
+  .ll-edge-suspicious,
+  .ll-edge-mule-transit,
+  .ll-radar-sweep,
+  .ll-loader-progress-fill,
+  .ll-loader-progress-fill::after,
+  .ll-loader-beacon-dot {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 640px) {
+  .ll-loader-card {
+    padding: 24px 20px 20px;
+  }
+  .ll-loader-canvas-container {
+    height: 210px;
+  }
+  .ll-loader-phase-title {
+    font-size: 14px;
+  }
+  .ll-loader-message {
+    font-size: 11.5px;
+  }
+}

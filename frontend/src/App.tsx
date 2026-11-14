@@ -20,6 +20,7 @@ import {
 import { computeGraphLayout, type LayoutNode, type LayoutEdge } from "./graphLayout";
 import { LandingPage } from "./LandingPage";
 import { AuthScreen } from "./AuthScreen";
+import { LaunderLensLoader } from "./LaunderLensLoader";
 
 export type Screen = "landing" | "auth" | "overview" | "investigation" | "simulation" | "datasets";
 export type IconName =
@@ -3202,6 +3203,7 @@ function Simulation({
 // Main Application Component
 // -------------------------------------------------------------
 export default function App() {
+  const [showLoader, setShowLoader] = useState<boolean>(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [screen, setScreen] = useState<Screen>("landing");
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
@@ -3312,6 +3314,17 @@ export default function App() {
     );
   };
 
+  // Intelligent Loading Animation Sequence (Initial boot or on-demand replay)
+  if (showLoader) {
+    return (
+      <LaunderLensLoader
+        variant="fullscreen"
+        durationMs={4500}
+        onComplete={() => setShowLoader(false)}
+      />
+    );
+  }
+
   // Public-facing Enterprise SaaS Landing Page
   if (screen === "landing") {
     return (
@@ -3324,6 +3337,7 @@ export default function App() {
           setAuthMode("signin");
           setScreen("auth");
         }}
+        onReplayLoader={() => setShowLoader(true)}
       />
     );
   }

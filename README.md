@@ -157,3 +157,4 @@ The web application will be live at [http://127.0.0.1:5173](http://127.0.0.1:517
 ## 📄 License
 
 This project is licensed under the Apache 2.0 License - see the LICENSE file for details.
+

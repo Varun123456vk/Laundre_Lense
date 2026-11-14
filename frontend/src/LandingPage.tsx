@@ -4,9 +4,10 @@ import "./landing.css";
 interface LandingPageProps {
   onSignIn: (initialMode?: "signin" | "signup") => void;
   onOpenAlert?: (alertId?: string) => void;
+  onReplayLoader?: () => void;
 }
 
-export function LandingPage({ onSignIn, onOpenAlert }: LandingPageProps) {
+export function LandingPage({ onSignIn, onOpenAlert, onReplayLoader }: LandingPageProps) {
   const [activeTypologyTab, setActiveTypologyTab] = useState<
     "scatter-gather" | "fan-out" | "fan-in" | "cycle" | "pass-through"
   >("scatter-gather");
@@ -68,6 +69,32 @@ export function LandingPage({ onSignIn, onOpenAlert }: LandingPageProps) {
 
           {/* Actions */}
           <div className="landing-nav-actions">
+            {onReplayLoader && (
+              <button
+                type="button"
+                className="landing-btn-ghost"
+                onClick={onReplayLoader}
+                title="Play the 5-Scene Intelligent Loader Animation"
+                style={{
+                  fontSize: "11px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "6px 12px",
+                  color: "#5B2BB5",
+                  fontWeight: 650,
+                  background: "#F4EFFC",
+                  border: "1px solid #E5DAF7",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="#5B2BB5" stroke="#5B2BB5" strokeWidth="2">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                <span>Preview Loader</span>
+              </button>
+            )}
             <button
               type="button"
               className="landing-btn-secondary"
@@ -1203,6 +1230,16 @@ export function LandingPage({ onSignIn, onOpenAlert }: LandingPageProps) {
                 <li><a href="#technology">Explainable AI (TreeSHAP)</a></li>
                 <li><a href="#technology">LightGBM Classifiers</a></li>
                 <li><a href="#technology">FastAPI Engine</a></li>
+                {onReplayLoader && (
+                  <li>
+                    <a
+                      onClick={onReplayLoader}
+                      style={{ cursor: "pointer", color: "#5B2BB5", fontWeight: 600 }}
+                    >
+                      Replay Loader Animation ⚡
+                    </a>
+                  </li>
+                )}
               </ul>
             </div>
 
