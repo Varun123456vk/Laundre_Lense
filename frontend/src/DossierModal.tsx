@@ -1,19 +1,32 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Icon, type IconName } from "./App";
 import { type ApiRegulatoryDossier } from "./api";
 
 interface DossierModalProps {
+  isOpen: boolean;
   dossier: ApiRegulatoryDossier | null;
   loading: boolean;
   onClose: () => void;
 }
 
 export const RegulatoryDossierModal: React.FC<DossierModalProps> = ({
+  isOpen,
   dossier,
   loading,
   onClose,
 }) => {
-  if (!dossier && !loading) return null;
+  // Listen for Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
 
   const handleDownload = () => {
     if (!dossier) return;
@@ -336,7 +349,44 @@ export const RegulatoryDossierModal: React.FC<DossierModalProps> = ({
             </>
           )}
         </div>
+
+        {/* Modal Footer */}
+        <div
+          style={{
+            padding: "12px 24px",
+            borderTop: "1px solid #E3E0EA",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            background: "#F7F6F9",
+          }}
+        >
+          <span style={{ fontSize: 11, color: "#6A6180", fontFamily: "JetBrains Mono" }}>
+            Press Esc or click Close to return to investigation
+          </span>
+          <div style={{ display: "flex", gap: 10 }}>
+            {dossier && (
+              <button
+                type="button"
+                className="button primary"
+                onClick={handleDownload}
+                style={{ fontSize: 12, padding: "6px 14px", display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <Icon name="download" size={13} /> Download SAR Report (.md)
+              </button>
+            )}
+            <button
+              type="button"
+              className="button secondary"
+              onClick={onClose}
+              style={{ fontSize: 12, padding: "6px 16px" }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
+

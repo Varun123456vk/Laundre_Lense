@@ -2996,9 +2996,13 @@ function Investigation({
       </div>
 
       <RegulatoryDossierModal
+        isOpen={showDossier}
         dossier={dossier}
         loading={loadingDossier}
-        onClose={() => setShowDossier(false)}
+        onClose={() => {
+          setShowDossier(false);
+          setDossier(null);
+        }}
       />
 
       <AICopilotPanel
