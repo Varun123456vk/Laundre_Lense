@@ -10,7 +10,6 @@
 Traditional rule-based transaction monitoring systems analyze transactions in isolation against fixed thresholds (e.g. ₹50,000 evasion), suffering from massive false positive rates (>88%) while remaining blind to multi-tier layering, smurfing, and circular wash trading.
 
 **LaunderLens** transforms disconnected financial transaction logs into an explainable investigation graph. It identifies complex laundering typologies across 2 to 6 hops, computes machine-learning risk scores with TreeSHAP feature attributions, and provides compliance investigators with actionable, zero-hallucination evidence dossiers compliant with **PMLA 2002**, **RBI Master Directions**, and **FATF Typologies**.
-
 ---
 
 ## 🏗️ Architecture & Technology Stack

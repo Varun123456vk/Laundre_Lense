@@ -251,91 +251,74 @@ function AppHeader({
 
   return (
     <header className="app-header">
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      {/* Left: Clean Brand & Exit */}
+      <div className="brand-group">
         <Logo onClick={() => setScreen("landing")} />
+        <div className="brand-divider" />
         <button
           type="button"
           onClick={() => setScreen("landing")}
-          className="nav-item"
-          style={{ height: 26, padding: "0 8px", fontSize: 11, border: "1px solid var(--border)", borderRadius: 4 }}
+          className="landing-exit-link"
           title="Return to Public Marketing Landing Page"
         >
-          ← Landing Page
+          <span>Exit to Landing</span>
+          <Icon name="external" size={11} />
         </button>
       </div>
+
+      {/* Center: Segmented Navigation */}
       <nav className="primary-nav" aria-label="Primary navigation">
-        {nav.map((item, index) => (
+        {nav.map((item) => (
           <button
-            key={`${item.label}-${index}`}
+            key={item.id}
             className={screen === item.id ? "nav-item active" : "nav-item"}
             onClick={() => setScreen(item.id)}
           >
-            <Icon name={item.icon} />
+            <Icon name={item.icon} size={14} />
             <span>{item.label}</span>
-            {item.count !== undefined && <span className="nav-count">{item.count}</span>}
+            {item.count !== undefined && item.count > 0 && (
+              <span className="nav-count">{item.count}</span>
+            )}
           </button>
         ))}
       </nav>
 
+      {/* Right: Consolidated Tools & Profile */}
       <div className="header-tools">
-        {/* Active Dataset Pill */}
+        {/* Active Dataset Dropdown Pill */}
         <button
           onClick={onOpenDatasets}
-          className="dataset-status"
-          style={{ background: "transparent", border: "0", cursor: "pointer", padding: "4px 8px", borderRadius: 4 }}
-          title="Click to view or upload datasets"
+          className="dataset-pill"
+          title="Click to view or switch datasets"
         >
-          <span className="status-dot" />
-          <span>Active: <strong>{activeDataset.filename}</strong></span>
-          <Badge tone="typology">
-            <Icon name="upload" size={10} /> Switch
-          </Badge>
+          <Icon name="database" size={13} />
+          <span className="dataset-name">
+            {activeDataset.filename !== "No data loaded" ? activeDataset.filename : "No Dataset"}
+          </span>
+          <span className="dataset-switch-tag">Switch</span>
         </button>
 
-        {/* Currency Tag */}
-        <span className="currency-pill">
-          <strong>₹ INR</strong>
-        </span>
-
-        {/* Live Backend Connection Indicator */}
-        <span
-          className="currency-pill"
-          style={{
-            background: backendOnline ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
-            borderColor: backendOnline ? "rgba(16, 185, 129, 0.4)" : "rgba(239, 68, 68, 0.4)",
-            color: backendOnline ? "#059669" : "#dc2626",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "5px",
-          }}
+        {/* Unified Engine Status Indicator */}
+        <div
+          className={`engine-status-pill ${backendOnline ? "online" : "offline"}`}
           title={
             backendOnline
-              ? "FastAPI Backend connected on http://127.0.0.1:8000"
+              ? "FastAPI Engine online at http://127.0.0.1:8000 (₹ INR corridor)"
               : "Backend disconnected - using local offline state"
           }
         >
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: backendOnline ? "#10b981" : "#ef4444",
-            }}
-          />
-          <strong>{backendOnline ? "API Online" : "Offline"}</strong>
-        </span>
+          <span className="engine-status-dot" />
+          <span>{backendOnline ? "API Live (₹ INR)" : "Offline (Local)"}</span>
+        </div>
 
         <div className="divider" />
 
         {/* User Profile & Dropdown */}
         <div className="profile-dropdown-wrapper" ref={menuRef}>
-          <button className="profile" onClick={() => setMenuOpen(!menuOpen)}>
-            <span className="avatar">{currentUser.initials}</span>
-            <span className="profile-copy">
-              <strong>{currentUser.name}</strong>
-              <small>{currentUser.role}</small>
-            </span>
-            <Icon name="chevron" size={14} />
+          <button className="profile-btn" onClick={() => setMenuOpen(!menuOpen)}>
+            <span className="avatar-circle">{currentUser.initials}</span>
+            <span className="profile-name">{currentUser.name}</span>
+            <Icon name="chevron" size={12} />
           </button>
 
           {menuOpen && (
@@ -1498,53 +1481,108 @@ function Overview({
   return (
     <main className="page overview-page">
       <div className="page-title-row">
-        <div>
-          <span className="eyebrow">INVESTIGATION WORKSPACE (₹ INR)</span>
+        <div className="title-block">
+          <div className="title-badge-row">
+            <span className="workspace-badge">
+              <span className="badge-dot" />
+              INVESTIGATION WORKSPACE
+            </span>
+            <span className="currency-tag">₹ INR</span>
+          </div>
           <h1>Investigation Overview</h1>
-          <p>
+          <p className="subtitle">
             Monitor suspicious financial transaction networks and detection performance in Indian Rupees (₹).
           </p>
         </div>
         <div className="page-actions">
           <button className="button secondary" onClick={onOpenDatasets}>
-            <Icon name="upload" /> Ingest User Dataset
+            <Icon name="upload" size={14} /> Ingest Dataset
           </button>
           <button
             className="button primary"
             onClick={() => openAlert(filtered[0]?.id || activeDataset.alerts[0]?.id)}
-            disabled={!filtered[0]}
+            disabled={!filtered[0] && !activeDataset.alerts[0]}
           >
-            <Icon name="alert" /> Review Highest Risk {filtered[0] ? `(${filtered[0].amount})` : ""}
+            <Icon name="alert" size={14} />
+            <span>Review Active Case</span>
+            {(filtered[0]?.amount || activeDataset.alerts[0]?.amount) && (
+              <span className="btn-amount-chip">
+                {filtered[0]?.amount || activeDataset.alerts[0]?.amount}
+              </span>
+            )}
           </button>
         </div>
       </div>
 
-      <div className="stats-strip">
-        <div>
-          <span>Open alerts</span>
-          <strong className="mono">{activeDataset.alerts.length}</strong>
-          <small className="high-text">
-            {activeDataset.alerts.filter((a) => a.risk >= 0.85).length} high risk
-          </small>
+      <div className="metrics-grid">
+        <div className="metric-card">
+          <div className="metric-header">
+            <span className="metric-label">Open Alerts</span>
+            <span className="metric-icon alert">
+              <Icon name="alert" size={14} />
+            </span>
+          </div>
+          <div className="metric-value mono">{activeDataset.alerts.length}</div>
+          <div className="metric-footer">
+            <span
+              className={
+                activeDataset.alerts.filter((a) => a.risk >= 0.85).length > 0
+                  ? "metric-tag danger"
+                  : "metric-tag neutral"
+              }
+            >
+              {activeDataset.alerts.filter((a) => a.risk >= 0.85).length} High Risk
+            </span>
+            <span className="metric-caption">Require Review</span>
+          </div>
         </div>
-        <div>
-          <span>In review</span>
-          <strong className="mono">
-            {activeDataset.alerts.filter((a) => a.status === "Reviewing").length}
-          </strong>
-          <small>Active case reviews</small>
+
+        <div className="metric-card">
+          <div className="metric-header">
+            <span className="metric-label">Under Investigation</span>
+            <span className="metric-icon clock">
+              <Icon name="clock" size={14} />
+            </span>
+          </div>
+          <div className="metric-value mono">
+            {activeDataset.alerts.filter((a) => a.status === "Reviewing" || a.status === "Open").length}
+          </div>
+          <div className="metric-footer">
+            <span className="metric-tag warning">
+              {activeDataset.alerts.filter((a) => a.status === "Reviewing").length} Reviewing
+            </span>
+            <span className="metric-caption">Active Queue</span>
+          </div>
         </div>
-        <div>
-          <span>Value monitored</span>
-          <strong className="mono">{activeDataset.volumeInr}</strong>
-          <small>Active dataset total</small>
+
+        <div className="metric-card">
+          <div className="metric-header">
+            <span className="metric-label">Monitored Volume</span>
+            <span className="metric-icon volume">
+              <Icon name="chart" size={14} />
+            </span>
+          </div>
+          <div className="metric-value mono">{activeDataset.volumeInr || "₹0.00"}</div>
+          <div className="metric-footer">
+            <span className="metric-tag typology">₹ INR Total</span>
+            <span className="metric-caption">{activeDataset.recordsCount || 0} Transactions</span>
+          </div>
         </div>
-        <div>
-          <span>Confirmed networks</span>
-          <strong className="mono">
+
+        <div className="metric-card">
+          <div className="metric-header">
+            <span className="metric-label">Confirmed Networks</span>
+            <span className="metric-icon check">
+              <Icon name="check" size={14} />
+            </span>
+          </div>
+          <div className="metric-value mono">
             {activeDataset.alerts.filter((a) => a.status === "Confirmed").length}
-          </strong>
-          <small className="positive">Attributed by model</small>
+          </div>
+          <div className="metric-footer">
+            <span className="metric-tag success">Model Attributed</span>
+            <span className="metric-caption">Verified</span>
+          </div>
         </div>
       </div>
 
@@ -3378,14 +3416,16 @@ export default function App() {
     };
   }, []);
 
-  // Initialize live backend connection on mount
+  // Initialize and periodically sync live backend connection
   useEffect(() => {
     let isMounted = true;
-    checkBackendHealth().then(async (online) => {
-      if (!isMounted) return;
-      setBackendOnline(online);
-      if (online) {
-        try {
+
+    const syncBackend = async () => {
+      try {
+        const online = await checkBackendHealth();
+        if (!isMounted) return;
+        setBackendOnline(online);
+        if (online) {
           const [apiAlerts, metrics] = await Promise.all([
             fetchAlerts().catch(() => []),
             fetchMetrics().catch(() => null),
@@ -3408,8 +3448,8 @@ export default function App() {
             const liveDs: Dataset = {
               id: "ds-live-fastapi",
               name: "LaunderLens Live Graph Pipeline",
-              filename: "launderlens.db (Live FastAPI)",
-              uploadedAt: "Connected to :8000",
+              filename: "launderlens.db",
+              uploadedAt: "FastAPI Engine :8000",
               recordsCount: apiAlerts.length * 8,
               volumeInr: formatINR(totalVol),
               suspiciousRingsCount: apiAlerts.length,
@@ -3418,23 +3458,32 @@ export default function App() {
               sampleRows: [],
             };
 
-            setDatasets([liveDs]);
-            setActiveDataset(liveDs);
-            setSelectedAlertId(mappedAlerts[0].id);
-            addActivity(
-              `Loaded ${mappedAlerts.length} live alerts from launderlens.db`,
-              "FastAPI Sync",
-              "success"
-            );
+            setDatasets((prev) => {
+              if (prev.length === 0 || prev[0].id === "ds-live-fastapi") {
+                return [liveDs];
+              }
+              return prev;
+            });
+            setActiveDataset((prev) => {
+              if (prev.id === EMPTY_DATASET.id || prev.id === "ds-live-fastapi") {
+                return liveDs;
+              }
+              return prev;
+            });
+            setSelectedAlertId((prev) => prev || mappedAlerts[0]?.id || "");
           }
-        } catch (err) {
-          console.warn("Failed to load initial API data:", err);
         }
+      } catch (err) {
+        // Silent background sync
       }
-    });
+    };
+
+    syncBackend();
+    const interval = setInterval(syncBackend, 5000);
 
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
   }, []);
 
