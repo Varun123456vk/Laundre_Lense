@@ -21,6 +21,12 @@ import { computeGraphLayout, type LayoutNode, type LayoutEdge } from "./graphLay
 import { LandingPage } from "./LandingPage";
 import { AuthScreen } from "./AuthScreen";
 import { LaunderLensLoader } from "./LaunderLensLoader";
+import {
+  supabase,
+  isSupabaseConfigured,
+  signOutSupabase,
+  mapSupabaseUserToUser,
+} from "./supabase";
 
 export type Screen = "landing" | "auth" | "overview" | "investigation" | "simulation" | "datasets";
 export type IconName =
@@ -3231,6 +3237,52 @@ export default function App() {
     ]);
   };
 
+  // Supabase Auth listener (Google OAuth session detection and user mapping)
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    // 1. Check existing session on load (e.g. redirected back from Google OAuth)
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.warn("Supabase session check error:", error);
+        return;
+      }
+      if (session?.user) {
+        const mappedUser = mapSupabaseUserToUser(session.user);
+        setCurrentUser(mappedUser);
+        setScreen("overview");
+        addActivity(
+          `Investigator ${mappedUser.name} authenticated via Google OAuth`,
+          mappedUser.name,
+          "accent"
+        );
+      }
+    });
+
+    // 2. Subscribe to auth state changes (SIGNED_IN, SIGNED_OUT, etc.)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        const mappedUser = mapSupabaseUserToUser(session.user);
+        setCurrentUser(mappedUser);
+        setScreen("overview");
+        addActivity(
+          `Investigator ${mappedUser.name} signed in via Google OAuth`,
+          mappedUser.name,
+          "accent"
+        );
+      } else if (event === "SIGNED_OUT") {
+        setCurrentUser(null);
+        setScreen("landing");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   // Initialize live backend connection on mount
   useEffect(() => {
     let isMounted = true;
@@ -3373,7 +3425,8 @@ export default function App() {
         screen={screen}
         setScreen={setScreen}
         currentUser={currentUser}
-        onLogout={() => {
+        onLogout={async () => {
+          await signOutSupabase();
           setCurrentUser(null);
           setAuthMode("signin");
           setScreen("landing");

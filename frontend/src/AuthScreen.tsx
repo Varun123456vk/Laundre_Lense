@@ -1,6 +1,30 @@
 import React, { useState } from "react";
 import type { User } from "./App";
 import { LaunderLensLoader } from "./LaunderLensLoader";
+import { signInWithGoogle, isSupabaseConfigured } from "./supabase";
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+      />
+    </svg>
+  );
+}
 
 interface AuthScreenProps {
   initialMode?: "signin" | "signup";
@@ -39,12 +63,38 @@ export function AuthScreen({
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSubmitted, setForgotSubmitted] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showSupabaseSetupModal, setShowSupabaseSetupModal] = useState(false);
 
   // Switch tabs
   const handleTabSwitch = (newMode: "signin" | "signup") => {
     setMode(newMode);
     setErrorMessage(null);
     setSuccessMessage(null);
+  };
+
+  // Google OAuth handler via Supabase
+  const handleGoogleAuth = async () => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (!isSupabaseConfigured()) {
+      setShowSupabaseSetupModal(true);
+      return;
+    }
+
+    setIsGoogleLoading(true);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        setErrorMessage(error.message);
+        setIsGoogleLoading(false);
+      }
+      // If successful, user is redirected by Supabase to Google
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to initiate Google authentication.");
+      setIsGoogleLoading(false);
+    }
   };
 
   // Sign In submit handler
@@ -268,6 +318,55 @@ export function AuthScreen({
               <span>{successMessage}</span>
             </div>
           )}
+
+          {/* Social Auth: Supabase Google OAuth */}
+          <div style={{ marginTop: 14 }}>
+            <button
+              type="button"
+              className="google-auth-btn"
+              onClick={handleGoogleAuth}
+              disabled={isSubmitting || isGoogleLoading}
+              title="Sign in with your Google Account"
+            >
+              {isGoogleLoading ? (
+                <>
+                  <span className="spinner" style={{ width: 14, height: 14 }} />
+                  <span>Redirecting to Google Account…</span>
+                </>
+              ) : (
+                <>
+                  <GoogleIcon />
+                  <span>{mode === "signin" ? "Sign in with Google" : "Sign up with Google"}</span>
+                </>
+              )}
+            </button>
+
+            {!isSupabaseConfigured() && (
+              <div className="auth-setup-banner">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5B2BB5" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <div>
+                  <span>Supabase Google OAuth ready. </span>
+                  <button type="button" onClick={() => setShowSupabaseSetupModal(true)}>
+                    Configure credentials in frontend/.env →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="auth-divider">
+              <span className="auth-divider-line" />
+              <span className="auth-divider-text">
+                {mode === "signin"
+                  ? "or sign in with institutional email"
+                  : "or register with institutional email"}
+              </span>
+              <span className="auth-divider-line" />
+            </div>
+          </div>
 
           {/* -------------------- TAB 1: SIGN IN -------------------- */}
           {mode === "signin" && (
@@ -664,6 +763,68 @@ export function AuthScreen({
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Supabase Google Auth Setup Modal */}
+      {showSupabaseSetupModal && (
+        <div className="auth-modal-backdrop" onClick={() => setShowSupabaseSetupModal(false)}>
+          <div className="auth-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="auth-modal-header">
+              <div className="auth-modal-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B2BB5" strokeWidth="2.2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <span>Connect Supabase Google Authentication</span>
+              </div>
+              <button
+                type="button"
+                className="auth-modal-close"
+                onClick={() => setShowSupabaseSetupModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="auth-modal-body">
+              <p style={{ fontSize: 12, color: "var(--secondary)", margin: "0 0 14px 0", lineHeight: 1.5 }}>
+                To enable Google OAuth authentication in LaunderLens using Supabase, complete these 3 quick steps:
+              </p>
+
+              <ol style={{ paddingLeft: 18, fontSize: 12, lineHeight: 1.6, color: "var(--text)", margin: "0 0 16px 0", display: "flex", flexDirection: "column", gap: 10 }}>
+                <li>
+                  <strong>1. Get Supabase API Credentials:</strong> Open your{" "}
+                  <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" style={{ color: "#5B2BB5", textDecoration: "underline", fontWeight: 600 }}>
+                    Supabase Dashboard
+                  </a>
+                  , go to <strong>Project Settings → API</strong>, and copy your <code>Project URL</code> and <code>anon public key</code>.
+                </li>
+                <li>
+                  <strong>2. Update frontend/.env:</strong> In <code>frontend/.env</code>, paste your credentials:
+                  <pre style={{ background: "#f5f3f9", padding: "8px 10px", borderRadius: 4, marginTop: 6, fontSize: 11, border: "1px solid var(--border)", overflowX: "auto", fontFamily: "'JetBrains Mono', monospace" }}>
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+                  </pre>
+                </li>
+                <li>
+                  <strong>3. Enable Google Provider in Supabase:</strong> In Supabase Dashboard → <strong>Authentication → Providers → Google</strong>, toggle on <em>Enable Google provider</em>, and paste your Google Cloud Client ID & Secret.
+                  <div style={{ marginTop: 4, fontSize: 11, color: "var(--secondary)" }}>
+                    Authorized Redirect URI: <code>https://&lt;your-project-id&gt;.supabase.co/auth/v1/callback</code>
+                  </div>
+                </li>
+              </ol>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+                <button
+                  type="button"
+                  className="button primary"
+                  onClick={() => setShowSupabaseSetupModal(false)}
+                >
+                  I Understand / Ready to Configure
+                </button>
+              </div>
             </div>
           </div>
         </div>
