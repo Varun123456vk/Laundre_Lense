@@ -1922,14 +1922,60 @@ function NetworkGraph({
       const layout = computeGraphLayout(graphPayload.nodes, graphPayload.edges, typology);
       return {
         activeNodes: layout.nodes,
-        activeEdges: layout.edges.map((e) => [e.fromIndex, e.toIndex, e.amount] as [number, number, string]),
+        activeEdges: layout.edges.map((e) => ({
+          fromIndex: e.fromIndex,
+          toIndex: e.toIndex,
+          amount: e.amount,
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          rawAmount: e.rawAmount,
+          hopIndex: e.hopIndex ?? 1,
+        })),
       };
     }
     return {
       activeNodes: [] as LayoutNode[],
-      activeEdges: [] as [number, number, string][],
+      activeEdges: [] as Array<{
+        fromIndex: number;
+        toIndex: number;
+        amount: string;
+        id: string;
+        source: string;
+        target: string;
+        rawAmount: number;
+        hopIndex: number;
+      }>,
     };
   }, [graphPayload, typology]);
+
+  const selectedNode = useMemo(() => {
+    return activeNodes.find((n) => n.id === selected) || null;
+  }, [activeNodes, selected]);
+
+  const selectedNodeStats = useMemo(() => {
+    if (!selected || !graphPayload?.edges) return null;
+    const incoming = graphPayload.edges.filter((e) => e.target === selected);
+    const outgoing = graphPayload.edges.filter((e) => e.source === selected);
+    const totalInflow = incoming.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const totalOutflow = outgoing.reduce((sum, e) => sum + (e.amount || 0), 0);
+    return {
+      incomingCount: incoming.length,
+      outgoingCount: outgoing.length,
+      totalInflow: formatINR(totalInflow),
+      totalOutflow: formatINR(totalOutflow),
+    };
+  }, [selected, graphPayload]);
+
+  const exitNode = useMemo(() => {
+    return activeNodes.find((n) => n.role === "exit") || activeNodes[activeNodes.length - 1];
+  }, [activeNodes]);
+
+  const totalClusterAmount = useMemo(() => {
+    return formatINR(
+      graphPayload?.edges?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0
+    );
+  }, [graphPayload]);
 
   useEffect(() => {
     if (activeNodes.length > 0 && (!selected || !activeNodes.find((n) => n.id === selected))) {
@@ -2130,6 +2176,39 @@ function NetworkGraph({
         </div>
       </div>
 
+      {/* Floating Interactive Account Inspector */}
+      {selectedNode && selectedNodeStats && (
+        <div className="graph-inspector-card">
+          <div className="inspector-header">
+            <span className={`inspector-dot ${selectedNode.role}`} />
+            <strong>{selectedNode.id}</strong>
+            <Badge
+              tone={
+                selectedNode.role === "entry"
+                  ? "success"
+                  : selectedNode.role === "exit"
+                  ? "danger"
+                  : selectedNode.role === "hub"
+                  ? "typology"
+                  : "warning"
+              }
+            >
+              {selectedNode.role.toUpperCase()}
+            </Badge>
+          </div>
+          <div className="inspector-stats">
+            <div>
+              <small>Inflow ({selectedNodeStats.incomingCount} tx)</small>
+              <span className="mono">{selectedNodeStats.totalInflow}</span>
+            </div>
+            <div>
+              <small>Outflow ({selectedNodeStats.outgoingCount} tx)</small>
+              <span className="mono">{selectedNodeStats.totalOutflow}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SVG Canvas with Pan & Zoom Transform and High-Contrast Typography */}
       <svg
         className={`network-svg ${contrastMode}`}
@@ -2194,18 +2273,17 @@ function NetworkGraph({
           transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
           style={{ transformOrigin: "370px 188px", transition: isDragging ? "none" : "transform 0.15s ease-out" }}
         >
-          {/* Directed Transaction Edges - Flows all the way to the last node! */}
-          {activeEdges.map(([from, to, amount], i) => {
-            const a = activeNodes[Number(from)],
-              b = activeNodes[Number(to)];
+          {/* Directed Transaction Edges */}
+          {activeEdges.map((e, i) => {
+            const a = activeNodes[e.fromIndex],
+              b = activeNodes[e.toIndex];
             if (!a || !b) return null;
             const mx = (a.x + b.x) / 2;
             const my = (a.y + b.y) / 2 - (i % 2 === 0 ? 6 : -6);
 
-            // Sequential multi-hop animation calculation:
-            const isHop1 = i < 5;
-            const isHop2 = i >= 5 && i < 10;
-            const isHop3 = i >= 10;
+            const isHop1 = e.hopIndex === 1 || (e.hopIndex === undefined && i < activeEdges.length / 2);
+            const isHop2 = e.hopIndex === 2 || (e.hopIndex === undefined && i >= activeEdges.length / 2);
+            const isHop3 = e.hopIndex >= 3;
 
             const isEdgeCompleted =
               (isHop1 && progress >= 34) ||
@@ -2218,20 +2296,30 @@ function NetworkGraph({
               (isHop3 && progress >= 68);
 
             const isPlayingFlow = isEdgeActiveNow || (progress >= 95 && isHop3);
+            const isLinkedToSelected = selected && (e.source === selected || e.target === selected);
 
             return (
               <g
                 className={isPlayingFlow ? "edge active" : isEdgeCompleted ? "edge active" : "edge"}
-                key={`${from}-${to}-${i}`}
-                style={{ opacity: !playing && progress === 0 ? 0.8 : isEdgeCompleted || isEdgeActiveNow ? 1 : 0.4 }}
+                key={`${e.source}-${e.target}-${i}`}
+                style={{
+                  opacity:
+                    !playing && progress === 0
+                      ? isLinkedToSelected ? 1 : 0.8
+                      : isEdgeCompleted || isEdgeActiveNow || isLinkedToSelected
+                      ? 1
+                      : 0.35,
+                }}
               >
                 <path
                   d={`M${a.x + 22} ${a.y} C${mx} ${a.y}, ${mx} ${b.y}, ${b.x - 22} ${b.y}`}
                   markerEnd={`url(#arrow-${simulation}-${contrastMode})`}
+                  stroke={isLinkedToSelected ? "#5B2BB5" : undefined}
+                  strokeWidth={isLinkedToSelected ? "2.2" : undefined}
                 />
-                <rect x={mx - 22} y={my - 8} width="44" height="15" rx="3" />
+                <rect x={mx - 24} y={my - 8} width="48" height="15" rx="3" />
                 <text x={mx} y={my + 2.5}>
-                  {amount}
+                  {e.amount}
                 </text>
               </g>
             );
@@ -2251,7 +2339,7 @@ function NetworkGraph({
               isEntryNode ||
               (isTier1Mule && progress >= 15) ||
               (isHubMule && progress >= 45) ||
-              (isExitNode && progress >= 72); // Exit reached!
+              (isExitNode && progress >= 72);
 
             const isExitPulsing = isExitNode && progress >= 72;
 
@@ -2270,6 +2358,7 @@ function NetworkGraph({
                 style={{
                   opacity: isNodeReached ? 1 : 0.5,
                   transition: "opacity 0.3s ease",
+                  cursor: "pointer",
                 }}
               >
                 {/* Node Outer & Inner Circles */}
@@ -2339,14 +2428,20 @@ function NetworkGraph({
 
           {/* Dynamic Hop Status Badge */}
           {progress < 34 ? (
-            <Badge tone="typology">Hop 1 of 3: Dispersal (Entry → 5 Mules)</Badge>
+            <Badge tone="typology">
+              Hop 1 of 3: Dispersal ({activeNodes.filter((n) => n.role === "entry").length || 1} Entry → {activeNodes.filter((n) => n.role === "mule").length} Mules)
+            </Badge>
           ) : progress < 68 ? (
-            <Badge tone="warning">Hop 2 of 3: Layering (5 Mules → 2 Hubs)</Badge>
+            <Badge tone="warning">
+              Hop 2 of 3: Layering Intermediaries ({activeEdges.filter((e) => e.hopIndex === 2).length || 5} Transfers)
+            </Badge>
           ) : progress < 95 ? (
-            <Badge tone="danger">Hop 3 of 3: Reconsolidating into Exit C71D-9B04!</Badge>
+            <Badge tone="danger">
+              Hop 3 of 3: Reconsolidating into Exit {exitNode ? exitNode.id : "Node"}!
+            </Badge>
           ) : (
             <Badge tone="success">
-              <Icon name="check" size={11} /> Flow Completed to Last Node (₹1,11,900)
+              <Icon name="check" size={11} /> Flow Completed to {exitNode ? exitNode.id : "Exit"} ({totalClusterAmount})
             </Badge>
           )}
 
@@ -3448,7 +3543,7 @@ export default function App() {
       {screen === "investigation" && (
         <Investigation
           onBack={() => setScreen("overview")}
-          selectedAlertId={selectedAlertId}
+          selectedAlertId={selectedAlertId || activeDataset.alerts[0]?.id || "RT-001"}
           onDispositionChange={handleDispositionChange}
         />
       )}

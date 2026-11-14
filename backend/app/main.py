@@ -113,9 +113,11 @@ def get_alert(alert_id: str, db: Session = Depends(get_db)) -> AlertDetail:
 
 @app.get("/alerts/{alert_id}/graph", response_model=GraphPayload)
 def get_graph(alert_id: str, db: Session = Depends(get_db)) -> GraphPayload:
-    rt_graph = get_active_redteam_graph()
-    if rt_graph and rt_graph.alert_id == alert_id:
-        return rt_graph
+    rt_alert = get_active_redteam_alert()
+    if rt_alert and rt_alert.alert_id == alert_id:
+        rt_graph = get_active_redteam_graph()
+        if rt_graph is not None:
+            return rt_graph
 
     try:
         graph = db_get_alert_graph(db, alert_id)

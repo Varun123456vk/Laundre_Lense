@@ -1345,3 +1345,66 @@ input.input-control { font-weight: 500; }
 .auth-modal-body {
   padding: 20px;
 }
+
+/* Floating Graph Account Inspector Card */
+.graph-inspector-card {
+  position: absolute;
+  top: 48px;
+  right: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 16px rgba(29, 21, 48, 0.08);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+  pointer-events: auto;
+  animation: fadeIn 0.15s ease-out;
+}
+.network-shell.dark .graph-inspector-card {
+  background: rgba(18, 14, 28, 0.95);
+  border-color: #3d3455;
+  color: #f3f0fa;
+}
+.inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.inspector-header strong {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+}
+.inspector-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.inspector-dot.entry { background: #2E9E6B; }
+.inspector-dot.mule { background: #E08A2E; }
+.inspector-dot.hub { background: #5B2BB5; }
+.inspector-dot.exit { background: #D04545; }
+.inspector-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+  font-size: 11px;
+}
+.network-shell.dark .inspector-stats {
+  border-color: #3d3455;
+}
+.inspector-stats small {
+  display: block;
+  color: var(--secondary);
+  font-size: 9.5px;
+}
+
